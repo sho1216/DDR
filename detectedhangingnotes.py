@@ -1,44 +1,29 @@
-#audio lecture
-#pyaudio demo
-
-#Code modified from https://people.csail.mit.edu/hubert/pyaudio/
-
 ###########################################################################
 ######################### Playing a WAV file ##############################
 ###########################################################################
-import copy
-
-"""PyAudio Example: Play a WAVE file."""
-
-import pyaudio
-import wave
+import copy, pyaudio, wave, aubio
+#Code modified from https://people.csail.mit.edu/hubert/pyaudio/
 from array import array
 from struct import pack
+from aubio import source, tempo
+from numpy import median, diff
 
+#basic read, write, play audio file functions
 def play(file):
     CHUNK = 1024 #measured in bytes
-
     wf = wave.open(file, 'rb')
-
     p = pyaudio.PyAudio()
-
     stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
                     channels=wf.getnchannels(),
                     rate=wf.getframerate(),
                     output=True)
-
     data = wf.readframes(CHUNK)
-
     while len(data) > 0:
         stream.write(data)
         data = wf.readframes(CHUNK)
-
     stream.stop_stream()
     stream.close()
-
     p.terminate()
-
-#play('newnsn.wav')
 
 def readFile(path):
     with open(path, "rt") as f:
@@ -47,11 +32,6 @@ def readFile(path):
 def writeFile(path, contents):
     with open(path, "wt") as f:
         f.write(contents)
-
-
-
-
-import aubio
 
 #modified from https://github.com/aubio/aubio/blob/master/python/demos/demo_pitch.py
 def detect(filename):
@@ -74,28 +54,18 @@ def detect(filename):
             samples, read = s()
             pitch = pitch_o(samples)[0]
             confidence = pitch_o.get_confidence()
-            #if confidence < 0.8: pitch = 0.
-            #print(pitch)
             pitches += [pitch]
             confidences += [confidence]
             total_frames += read
             if read < hop_s: break
         return beats, pitches
-
-from aubio import source, tempo
-from numpy import median, diff
-
+    
+#calculate the beats per minute (bpm) given path: path to the file
+#and param: dictionary of parameters
 def returnBeatsPitches(path, params=None):
-    """ Calculate the beats per minute (bpm) of a given file.
-        path: path to the file
-        param: dictionary of parameters
-        
-    """
-
     beats = []
     pitches = ''
     fileContents = ''
-
     if params is None:
         params = {}
     # default:
@@ -118,7 +88,6 @@ def returnBeatsPitches(path, params=None):
         win_s = params.win_s
     if 'hop_s' in params:
         hop_s = params.hop_s
-
     s = source(path, samplerate, hop_s)
     samplerate = s.samplerate
     o = tempo("specdiff", win_s, hop_s, samplerate)
@@ -130,52 +99,33 @@ def returnBeatsPitches(path, params=None):
     pitch_o.set_unit("freq")
     tolerance = 0.8
     pitch_o.set_tolerance(tolerance)
-
     while True:
         samples, read = s()
         is_beat = o(samples)
         if is_beat:
             this_beat = o.get_last_s()
-            #print((this_beat))
             beats.append(str(this_beat))
             pitch = pitch_o(samples)[0]
-            #print('pitch' + str(pitch))
             confidence = pitch_o.get_confidence()
             pitches += (str(pitch) + '\n')
-
-            #pitches.append(pitch)
-            #if pitch 
-            #if confidence < 0.8: pitch = 0.
-            #print("%f %f %f" % (total_frames / float(samplerate), pitch, confidence))
-
-            
-            
-            #beats.append(this_beat)
-            #if o.get_confidence() > .2 and len(beats) > 2.:
-            #    break
         total_frames += read
         if read < hop_s:
             break
     return pitches
 
+#example for demo with Never Say Never 
 res = returnBeatsPitches('neversaynever.wav')
 writeFile('pitches.txt',res)
 
-
-
-
-
+#find longer notes that are held in a song
 def findHangingNotes(pitches):
     prevPitch = -1
     hangingNotesList = copy.deepcopy(pitches)
-
     streak = []
-    writeStreak = ''
-    
+    writeStreak = ''   
     for i in range(len(pitches)-2):
         if abs(pitches[i] - pitches[i+1]) <= 25 and (
             abs(pitches[i+1] - pitches[i+2]) <= 25):
-
             if pitches[i] > 300:
                 if pitches[i] not in streak:
                     streak.append(pitches[i])
@@ -186,29 +136,8 @@ def findHangingNotes(pitches):
                 if pitches[i+2] not in streak:
                     streak.append(pitches[i+2])
                     writeStreak += str(pitches[i+2]) + '\n'
-        
     return writeStreak
 
-
-
+#example for demo with Never Say Never 
 streak = (findHangingNotes(pitches))
-
-
-#for spot in streak:
-#    print(spot)
-            
-            
 writeFile('hangingnotes.txt',streak)
-
-
-
-    
-#contentsToWrite = get_file_bpm('neversaynever.wav')
-#print(contentsToWrite)
-#writeFile('neversaynever.txt', contentsToWrite)
-
-#print(readFile('neversaynever.txt'))
-
-
-
-
