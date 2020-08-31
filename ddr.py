@@ -1,20 +1,7 @@
 from pykinect2 import PyKinectV2, PyKinectRuntime
 from pykinect2.PyKinectV2 import *
-
-
 from arrowclass import *
-import ctypes
-import _ctypes
-import pygame
-import sys
-import math
-import random
-import time
-import pyaudio
-import numpy
-import copy
-import os
-import wave
+import ctypes, _ctypes, pygame, sys, math, random, time, pyaudio, numpy, copy, os, wave
 from array import array
 from struct import pack
 
@@ -37,7 +24,7 @@ def play(file):
     stream.close()
     p.terminate()
 
-#the following functions are the read and write functions from 112
+#the following functions are the read and write functions from cmu cs 15112
 #course notes
 def readFile(path):
     with open(path, "rt") as f:
@@ -788,8 +775,7 @@ class GameRuntime(object):
             pygame.display.update()
             self.clock.tick(60) #runs 60 frames per second
         self.kinect.close()
-        pygame.quit()
-        
+        pygame.quit()        
 #runs game
 game = GameRuntime();
 game.run();
